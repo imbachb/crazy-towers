@@ -23,6 +23,12 @@ namespace CrazyTowers.Controllers
       return await _playerScoreService.FindAll();
     }
 
+    [HttpGet("Top3", Name = "FindTop3")]
+    public async Task<IEnumerable<PlayerScore>> GetTop3()
+    {
+      return await _playerScoreService.FindTop3();
+    }
+
     [HttpGet("{id}", Name = "FindOne")]
     public async Task<ActionResult<PlayerScore>> Get(int id)
     {

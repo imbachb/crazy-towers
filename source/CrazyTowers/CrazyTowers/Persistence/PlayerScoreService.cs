@@ -36,6 +36,11 @@ public class PlayerScoreService : IPlayerScoreService
     return await _dbContext.PlayerScores.ToListAsync();
   }
 
+  public async Task<IEnumerable<PlayerScore?>> FindTop3()
+  {
+    return await _dbContext.PlayerScores.OrderByDescending(x => x.Score).Take(3).ToListAsync();
+  }
+
   public async Task<PlayerScore?> FindOne(int id)
   {
     return await _dbContext.PlayerScores.FirstOrDefaultAsync(x => x.Id == id);

@@ -18,7 +18,7 @@ class MainScene extends Phaser.Scene {
   private shapes: any;
 
   private border!: Phaser.GameObjects.Rectangle;
-  private fundament!: Phaser.Physics.Matter.Image;
+  private fundament!: Phaser.Physics.Matter.Sprite;
   private blocks!: Phaser.GameObjects.Group;
   private activeBlock?: Phaser.Physics.Matter.Sprite;
 
@@ -29,11 +29,6 @@ class MainScene extends Phaser.Scene {
     this.cursors = this.input.keyboard.createCursorKeys();
 
     this.shapes = this.cache.json.get('shapes');
-
-    // @ts-ignore
-    this.activeBlock = this.matter.add.sprite(400, 500, 'l-left-yellow', undefined, { shape: this.shapes['l-left'] });
-    this.activeBlock.setScale(0.1, 0.1);
-    this.activeBlock.setIgnoreGravity(true);
 
     this.unblockLeftInputTimer = this.time.delayedCall(100, this.unblockLeftInput);
     this.unblockRightInputTimer = this.time.delayedCall(100, this.unblockRightInput);
@@ -51,21 +46,23 @@ class MainScene extends Phaser.Scene {
 
     this.border = new Phaser.GameObjects.Rectangle(this, 400, 300, 800, 600);
 
-    this.fundament = this.matter.add.image(400, 550, 'brick')
+    this.fundament = this.matter.add.sprite(400, 550, 'brick', undefined, { shape: this.shapes['brick'] } as Phaser.Types.Physics.Matter.MatterBodyConfig )
       .setDisplaySize(200, 100);
-
     this.fundament.setStatic(true);
 
     this.blocks = this.add.group();
 
     this.spawnBlock();
+
+    this.matter.world.on('collisionstart', (event: Phaser.Physics.Matter.Events.CollisionStartEvent) => {
+      this.onCollision(event.pairs[0]);
+    });
   }
 
   preload() {
     this.load.image('box', '/assets/images/box.webp');
     this.load.image('brick', '/assets/images/brick.jpg');
-    this.load.image('l-left-blue', 'assets/l-left-blue.png');
-    this.load.image('l-left-yellow', 'assets/l-left-yellow.png');
+    this.load.image('l-left-yellow', 'assets/images/l-left-yellow.png');
     this.load.json('shapes', 'assets/collision-shapes.json');
   }
 
@@ -97,16 +94,18 @@ class MainScene extends Phaser.Scene {
   }
 
   private spawnBlock() {
-    this.activeBlock = this.matter.add.sprite(Phaser.Math.Between(25, 775), 25, 'box')
-      .setDisplaySize(50, 50);
+    this.activeBlock = this.matter.add.sprite(
+      Phaser.Math.Between(25, 775), 25,
+      'l-left-yellow',
+      undefined,
+      { shape: this.shapes['l-left'] } as Phaser.Types.Physics.Matter.MatterBodyConfig);
+    this.activeBlock.setScale(0.1, 0.1);
 
     this.blocks.add(this.activeBlock);
 
     this.activeBlock.setVelocityY(5);
     this.activeBlock.setFrictionAir(0);
     this.activeBlock.setIgnoreGravity(true);
-
-    this.activeBlock.setOnCollide((data: Phaser.Types.Physics.Matter.MatterCollisionData) => this.onCollision(data));
   }
 
   private handleUserInput() {
@@ -221,7 +220,7 @@ class MainScene extends Phaser.Scene {
   }
 
   private onCollision(data: Phaser.Types.Physics.Matter.MatterCollisionData) {
-    if (data.bodyA !== this.activeBlock?.body && data.bodyB !== this.activeBlock?.body) {
+    if (data.bodyA.parent !== this.activeBlock?.body && data.bodyB.parent !== this.activeBlock?.body) {
       return;
     }
 

@@ -16,12 +16,11 @@ namespace CrazyTowers
     // This method gets called by the runtime. Use this method to add services to the container.
     public void ConfigureServices(IServiceCollection services)
     {
-      services.AddDbContextPool<ScoreDbContext>(options => options
-        .UseMySql(
-          Configuration.GetConnectionString("ScoreDbConnectionString"),
-          mySqlOptions => mySqlOptions.ServerVersion(new Version(10, 5, 4), ServerType.MariaDb)
-        )
-      );
+      services.AddDbContext<ScoreDbContext>(options =>
+      {
+        var connectionString = this.Configuration["ConnectionStrings:ScoreDbConnectionString"];
+        options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
+      });
 
       services.AddScoped<IPlayerScoreService, PlayerScoreService>();
 

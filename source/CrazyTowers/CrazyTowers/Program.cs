@@ -4,6 +4,9 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
+using CrazyTowers.Persistence;
+using Microsoft.Extensions.Hosting;
+
 namespace CrazyTowers;
 
 /// <summary>
@@ -43,8 +46,13 @@ public static class Program
     app.UseHttpsRedirection();
 
     app.UseAuthorization();
-
     app.MapControllers();
+
+    using (var scope = app.Services.CreateScope())
+    {
+      var services = scope.ServiceProvider;
+      await ScoreDbInitializer.Initialize(services);
+    }
 
     await app.RunAsync();
 

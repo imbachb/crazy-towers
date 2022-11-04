@@ -1,9 +1,11 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Router } from '@angular/router';
 import * as Phaser from 'phaser';
+import { from } from 'rxjs';
 
 class MainScene extends Phaser.Scene {
+  private score = 0;
 
-  private activeBlock: Phaser.Types.Physics.Arcade.ImageWithDynamicBody | null = null;
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private stepSize = 16;
   private blockLeftInput = false;
@@ -14,29 +16,87 @@ class MainScene extends Phaser.Scene {
   private pointerStartX = 0;
   private pointerCurrentX = 0;
 
+  private border!: Phaser.GameObjects.Rectangle;
+  private fundament!: Phaser.Physics.Matter.Image;
+  private blocks!: Phaser.GameObjects.Group;
+  private activeBlock?: Phaser.Physics.Matter.Sprite;
+
   constructor() {
     super({ key: 'main' });
   }
   create() {
     this.cursors = this.input.keyboard.createCursorKeys();
 
-    this.activeBlock = this.physics.add.image(400, 50, 'block');
-    this.activeBlock.body.setAllowGravity(false);
-
     this.unblockLeftInputTimer = this.time.delayedCall(100, this.unblockLeftInput);
     this.unblockRightInputTimer = this.time.delayedCall(100, this.unblockRightInput);
+
+    this.time.delayedCall(60000, () => {
+      sessionStorage.setItem('score', this.score.toString());
+      this.matter.pause();
+      this.game.events.emit('shutdown');
+    });
 
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       this.pointerStartX = pointer.x;
       this.pointerCurrentX = pointer.x;
     });
+
+    this.border = new Phaser.GameObjects.Rectangle(this, 400, 300, 800, 600);
+
+    this.fundament = this.matter.add.image(400, 550, 'brick')
+      .setDisplaySize(200, 100);
+
+    this.fundament.setStatic(true);
+
+    this.blocks = this.add.group();
+
+    this.spawnBlock();
   }
 
   preload() {
-    this.load.image('block', 'assets/placeholderBlock.png');
+    console.log('preload method');
+    this.load.image('box', '/assets/images/box.webp');
+    this.load.image('brick', '/assets/images/brick.jpg');
   }
+
   override update() {
     this.handleUserInput();
+    this.handleBlockOutOfBounds();
+  }
+
+  private handleBlockOutOfBounds() {
+    if (this.activeBlock == null) {
+      return;
+    }
+
+    const border = Phaser.Geom.Rectangle.Inflate(
+      Phaser.Geom.Rectangle.Clone(this.border.geom),
+      50,
+      50);
+
+    this.blocks.children.getArray().forEach(block => {
+      if (!Phaser.Geom.Rectangle.ContainsRect(border, (block as Phaser.GameObjects.Sprite).getBounds())) {
+        block.destroy();
+        this.blocks.remove(block);
+
+        if (block === this.activeBlock) {
+          this.spawnBlock();
+        }
+      }
+    });
+  }
+
+  private spawnBlock() {
+    this.activeBlock = this.matter.add.sprite(Phaser.Math.Between(25, 775), 25, 'box')
+      .setDisplaySize(50, 50);
+
+    this.blocks.add(this.activeBlock);
+
+    this.activeBlock.setVelocityY(5);
+    this.activeBlock.setFrictionAir(0);
+    this.activeBlock.setIgnoreGravity(true);
+
+    this.activeBlock.setOnCollide((data: Phaser.Types.Physics.Matter.MatterCollisionData) => this.onCollision(data));
   }
 
   private handleUserInput() {
@@ -148,6 +208,16 @@ class MainScene extends Phaser.Scene {
   private unblockRightInput() {
     this.blockRightInput = false;
   }
+
+  private onCollision(data: Phaser.Types.Physics.Matter.MatterCollisionData) {
+    if (data.bodyA !== this.activeBlock?.body && data.bodyB !== this.activeBlock?.body) {
+      return;
+    }
+
+    this.activeBlock?.setIgnoreGravity(false);
+
+    this.spawnBlock();
+  }
 }
 
 @Component({
@@ -155,11 +225,11 @@ class MainScene extends Phaser.Scene {
   templateUrl: './game.component.html',
   styleUrls: ['./game.component.scss']
 })
-export class GameComponent implements OnInit {
+export class GameComponent implements OnInit, OnDestroy {
   phaserGame!: Phaser.Game;
   config: Phaser.Types.Core.GameConfig;
 
-  constructor() {
+  constructor(private readonly router: Router) {
     this.config = {
       type: Phaser.AUTO,
       height: 1600,
@@ -167,15 +237,23 @@ export class GameComponent implements OnInit {
       scene: [ MainScene ],
       parent: 'gameContainer',
       physics: {
-        default: 'arcade',
-        arcade: {
-          gravity: { y: 100 }
-        }
+        default: 'matter',
+        matter: {
+        },
       },
     };
   }
 
   ngOnInit() {
     this.phaserGame = new Phaser.Game(this.config);
+    this.phaserGame.events.once('shutdown', () => this.handleGameOver())
+  }
+
+  ngOnDestroy() {
+    this.phaserGame.destroy(true);
+  }
+
+  private handleGameOver() {
+    from(this.router.navigate(['/game-over'])).subscribe();
   }
 }

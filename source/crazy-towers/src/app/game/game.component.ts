@@ -3,7 +3,6 @@ import * as Phaser from 'phaser';
 
 class MainScene extends Phaser.Scene {
 
-  private activeBlock: Phaser.Types.Physics.Arcade.ImageWithDynamicBody | null = null;
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private stepSize = 16;
   private blockLeftInput = false;
@@ -16,8 +15,8 @@ class MainScene extends Phaser.Scene {
 
   private border!: Phaser.GameObjects.Rectangle;
   private fundament!: Phaser.Physics.Matter.Image;
-  private boxes!: Phaser.GameObjects.Group;
-  private box?: Phaser.Physics.Matter.Sprite;
+  private blocks!: Phaser.GameObjects.Group;
+  private activeBlock?: Phaser.Physics.Matter.Sprite;
 
   constructor() {
     super({ key: 'main' });
@@ -40,9 +39,9 @@ class MainScene extends Phaser.Scene {
 
     this.fundament.setStatic(true);
 
-    this.boxes = this.add.group();
+    this.blocks = this.add.group();
 
-    this.spawnBox();
+    this.spawnBlock();
   }
 
   preload() {
@@ -53,8 +52,11 @@ class MainScene extends Phaser.Scene {
 
   override update() {
     this.handleUserInput();
+    this.handleBlockOutOfBounds();
+  }
 
-    if (this.box == null) {
+  private handleBlockOutOfBounds() {
+    if (this.activeBlock == null) {
       return;
     }
 
@@ -63,25 +65,32 @@ class MainScene extends Phaser.Scene {
       50,
       50);
 
-    if (!Phaser.Geom.Rectangle.ContainsRect(border, this.box.getBounds())) {
-      this.box.destroy();
-      this.boxes.remove(this.box);
+    const blocksToRemove: Phaser.GameObjects.GameObject[] = [];
+    this.blocks.children.iterate(block => {
+      if (!Phaser.Geom.Rectangle.ContainsRect(border, (block as Phaser.GameObjects.Sprite).getBounds())) {
+        block.destroy();
+        blocksToRemove.push(block);
 
-      this.spawnBox();
-    }
+        if (block === this.activeBlock) {
+          this.spawnBlock();
+        }
+      }
+    });
+
+    blocksToRemove.forEach(block => this.blocks.remove(block));
   }
 
-  private spawnBox() {
-    this.box = this.matter.add.sprite(Phaser.Math.Between(25, 775), 25, 'box')
+  private spawnBlock() {
+    this.activeBlock = this.matter.add.sprite(Phaser.Math.Between(25, 775), 25, 'box')
       .setDisplaySize(50, 50);
 
-    this.boxes.add(this.box);
+    this.blocks.add(this.activeBlock);
 
-    this.box.setVelocityY(5);
-    this.box.setFrictionAir(0);
-    this.box.setIgnoreGravity(true);
+    this.activeBlock.setVelocityY(5);
+    this.activeBlock.setFrictionAir(0);
+    this.activeBlock.setIgnoreGravity(true);
 
-    this.box.setOnCollide((data: Phaser.Types.Physics.Matter.MatterCollisionData) => this.onCollision(data));
+    this.activeBlock.setOnCollide((data: Phaser.Types.Physics.Matter.MatterCollisionData) => this.onCollision(data));
   }
 
   private handleUserInput() {
@@ -195,13 +204,13 @@ class MainScene extends Phaser.Scene {
   }
 
   private onCollision(data: Phaser.Types.Physics.Matter.MatterCollisionData) {
-    if (data.bodyA !== this.box?.body && data.bodyB !== this.box?.body) {
+    if (data.bodyA !== this.activeBlock?.body && data.bodyB !== this.activeBlock?.body) {
       return;
     }
 
-    this.box?.setIgnoreGravity(false);
+    this.activeBlock?.setIgnoreGravity(false);
 
-    this.spawnBox();
+    this.spawnBlock();
   }
 }
 

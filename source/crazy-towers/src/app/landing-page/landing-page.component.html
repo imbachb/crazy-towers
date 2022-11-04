@@ -2,9 +2,7 @@
 <div class="center" style="flex-direction: column; margin-top: 10%;">
   <div>Current Highscores</div>
   <ol>
-    <li>SlickRick</li>
-    <li>BrennanDee</li>
-    <li>LBransen</li>
+    <li *ngFor="let player of Top3Players | async" [value]="player.score">{{player.name}}</li>
   </ol>
 </div>
 <div style="margin-top: 10%;">

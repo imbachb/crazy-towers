@@ -53,6 +53,21 @@ namespace CrazyTowers.Controllers
       return BadRequest();
     }
 
+    [HttpPut]
+    public async Task<ActionResult<PlayerScore>> Put(PlayerScore playerScore)
+    {
+      var result = await _playerScoreService.UpdateScore(playerScore);
+
+      if (result != null)
+      {
+        return Ok(result);
+      }
+      else
+      {
+        return NotFound(playerScore);
+      }
+    }
+
     [HttpDelete("{id}")]
     public async Task<ActionResult<PlayerScore>> Delete(int id)
     {

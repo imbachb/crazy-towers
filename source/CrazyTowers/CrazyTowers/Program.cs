@@ -23,7 +23,17 @@ public static class Program
   {
     var builder = WebApplication.CreateBuilder(args);
 
-  // Add services to the container
+    var allowSpecificOrigins = "allowSpecificOrigins";
+    builder.Services.AddCors(options =>
+    {
+      options.AddPolicy(name: allowSpecificOrigins,
+        policy =>
+        {
+          policy.WithOrigins("http://localhost:4200").AllowAnyMethod().AllowAnyHeader();
+        });
+    });
+
+    // Add services to the container
     var startup = new Startup(builder.Configuration);
     startup.ConfigureServices(builder.Services);
 
@@ -33,6 +43,7 @@ public static class Program
     builder.Services.AddSwaggerGen();
 
     var app = builder.Build();
+    app.UseCors(allowSpecificOrigins);
 
     startup.Configure(app, app.Environment);
 

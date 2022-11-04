@@ -9,4 +9,5 @@ public interface IPlayerScoreService
   Task<IEnumerable<PlayerScore?>> FindTop3();
   Task<PlayerScore?> FindOne(int id);
   Task<int> Insert(PlayerScore score);
+  Task<PlayerScore?> UpdateScore(PlayerScore playerScore);
 }

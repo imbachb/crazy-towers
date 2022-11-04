@@ -46,6 +46,24 @@ public class PlayerScoreService : IPlayerScoreService
     return await _dbContext.PlayerScores.FirstOrDefaultAsync(x => x.Id == id);
   }
 
+  public async Task<PlayerScore?> UpdateScore(PlayerScore playerScore)
+  {
+    if (playerScore.Id == null)
+    {
+      return null;
+    }
+
+    var entity = await FindOne(playerScore.Id.GetValueOrDefault(0));
+    if (entity == null)
+    {
+      return null;
+    }
+
+    entity.Score = playerScore.Score;
+    await _dbContext.SaveChangesAsync();
+    return entity;
+  }
+
   public async Task<int> Insert(PlayerScore score)
   {
     _dbContext.Add(score);

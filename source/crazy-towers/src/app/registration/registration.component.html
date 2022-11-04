@@ -13,14 +13,14 @@
   </mat-form-field>
 
   <mat-form-field appearance="standard">
-    <mat-label>Highschool</mat-label>
-    <mat-select matInput placeholder="Placeholder" type="text" formControlName="highschool" autocomplete="off">
-      <mat-option *ngFor="let highschool of availableHighschools" [value]="highschool">{{highschool}}</mat-option>
+    <mat-label>Hochschule</mat-label>
+    <mat-select matInput placeholder="Placeholder" type="text" formControlName="school" autocomplete="off">
+      <mat-option *ngFor="let school of availableSchools" [value]="school">{{school}}</mat-option>
     </mat-select>
   </mat-form-field>
 
     <mat-label class="checkboxFormControl">
-      <mat-checkbox formControlName="registerForNewsletter">Register for newsletter</mat-checkbox>
+      <mat-checkbox formControlName="registerForNewsletter">Für Newsletter anmelden</mat-checkbox>
     </mat-label>
 
   <button type="submit" mat-raised-button [disabled]="!profileForm.valid">Start Game</button>

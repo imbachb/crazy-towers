@@ -74,19 +74,16 @@ class MainScene extends Phaser.Scene {
       50,
       50);
 
-    const blocksToRemove: Phaser.GameObjects.GameObject[] = [];
     this.blocks.children.getArray().forEach(block => {
       if (!Phaser.Geom.Rectangle.ContainsRect(border, (block as Phaser.GameObjects.Sprite).getBounds())) {
         block.destroy();
-        blocksToRemove.push(block);
+        this.blocks.remove(block);
 
         if (block === this.activeBlock) {
           this.spawnBlock();
         }
       }
     });
-
-    blocksToRemove.forEach(block => this.blocks.remove(block));
   }
 
   private spawnBlock() {

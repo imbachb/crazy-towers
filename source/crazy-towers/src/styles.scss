@@ -3,4 +3,13 @@
 body {
   margin: 0;
   font-family: Roboto, "Helvetica Neue", sans-serif;
+
+  /* Safari */
+  -webkit-user-select: none;
+  /* Firefox */
+  -moz-user-select: none;
+  /* IE10+/Edge */
+  -ms-user-select: none;
+  /* Standard */
+  user-select: none;
 }

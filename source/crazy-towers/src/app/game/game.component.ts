@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import * as Phaser from 'phaser';
 
 class MainScene extends Phaser.Scene {
@@ -14,14 +14,16 @@ class MainScene extends Phaser.Scene {
   private pointerStartX = 0;
   private pointerCurrentX = 0;
 
+  private border!: Phaser.GameObjects.Rectangle;
+  private fundament!: Phaser.Physics.Matter.Image;
+  private boxes!: Phaser.GameObjects.Group;
+  private box?: Phaser.Physics.Matter.Sprite;
+
   constructor() {
     super({ key: 'main' });
   }
   create() {
     this.cursors = this.input.keyboard.createCursorKeys();
-
-    this.activeBlock = this.physics.add.image(400, 50, 'block');
-    this.activeBlock.body.setAllowGravity(false);
 
     this.unblockLeftInputTimer = this.time.delayedCall(100, this.unblockLeftInput);
     this.unblockRightInputTimer = this.time.delayedCall(100, this.unblockRightInput);
@@ -30,13 +32,56 @@ class MainScene extends Phaser.Scene {
       this.pointerStartX = pointer.x;
       this.pointerCurrentX = pointer.x;
     });
+
+    this.border = new Phaser.GameObjects.Rectangle(this, 400, 300, 800, 600);
+
+    this.fundament = this.matter.add.image(400, 550, 'brick')
+      .setDisplaySize(200, 100);
+
+    this.fundament.setStatic(true);
+
+    this.boxes = this.add.group();
+
+    this.spawnBox();
   }
 
   preload() {
-    this.load.image('block', 'assets/placeholderBlock.png');
+    console.log('preload method');
+    this.load.image('box', '/assets/images/box.webp');
+    this.load.image('brick', '/assets/images/brick.jpg');
   }
+
   override update() {
     this.handleUserInput();
+
+    if (this.box == null) {
+      return;
+    }
+
+    const border = Phaser.Geom.Rectangle.Inflate(
+      Phaser.Geom.Rectangle.Clone(this.border.geom),
+      50,
+      50);
+
+    if (!Phaser.Geom.Rectangle.ContainsRect(border, this.box.getBounds())) {
+      this.box.destroy();
+      this.boxes.remove(this.box);
+
+      this.spawnBox();
+    }
+  }
+
+  private spawnBox() {
+    this.box = this.matter.add.sprite(Phaser.Math.Between(25, 775), 25, 'box')
+      .setDisplaySize(50, 50);
+
+    this.boxes.add(this.box);
+
+    this.box.setVelocityY(5);
+    this.box.setFrictionAir(0);
+    this.box.setIgnoreGravity(true);
+
+    this.box.setOnCollide((data: Phaser.Types.Physics.Matter.MatterCollisionData) => this.onCollision(data));
   }
 
   private handleUserInput() {
@@ -148,6 +193,16 @@ class MainScene extends Phaser.Scene {
   private unblockRightInput() {
     this.blockRightInput = false;
   }
+
+  private onCollision(data: Phaser.Types.Physics.Matter.MatterCollisionData) {
+    if (data.bodyA !== this.box?.body && data.bodyB !== this.box?.body) {
+      return;
+    }
+
+    this.box?.setIgnoreGravity(false);
+
+    this.spawnBox();
+  }
 }
 
 @Component({
@@ -155,7 +210,7 @@ class MainScene extends Phaser.Scene {
   templateUrl: './game.component.html',
   styleUrls: ['./game.component.scss']
 })
-export class GameComponent implements OnInit {
+export class GameComponent implements OnInit, OnDestroy {
   phaserGame!: Phaser.Game;
   config: Phaser.Types.Core.GameConfig;
 
@@ -167,15 +222,18 @@ export class GameComponent implements OnInit {
       scene: [ MainScene ],
       parent: 'gameContainer',
       physics: {
-        default: 'arcade',
-        arcade: {
-          gravity: { y: 100 }
-        }
+        default: 'matter',
+        matter: {
+        },
       },
     };
   }
 
   ngOnInit() {
     this.phaserGame = new Phaser.Game(this.config);
+  }
+
+  ngOnDestroy() {
+    this.phaserGame.destroy(true);
   }
 }

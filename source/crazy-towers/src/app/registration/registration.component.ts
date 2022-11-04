@@ -26,7 +26,11 @@ export class RegistrationComponent implements OnInit {
 
   public availableSchools = [
     'ETH Zürich',
-    'UZH'
+    'FHNW',
+    'HSLU',
+    'OST',
+    'Uni Zürich',
+    'ZHAW',
   ]
 
   constructor(private httpClient: HttpClient, private playerService: PlayerService, private router: Router) { }

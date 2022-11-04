@@ -15,6 +15,7 @@ class MainScene extends Phaser.Scene {
   private unblockDelay = 100;
   private pointerStartX = 0;
   private pointerCurrentX = 0;
+  private shapes: any;
 
   private border!: Phaser.GameObjects.Rectangle;
   private fundament!: Phaser.Physics.Matter.Image;
@@ -26,6 +27,13 @@ class MainScene extends Phaser.Scene {
   }
   create() {
     this.cursors = this.input.keyboard.createCursorKeys();
+
+    this.shapes = this.cache.json.get('shapes');
+
+    // @ts-ignore
+    this.activeBlock = this.matter.add.sprite(400, 500, 'l-left-yellow', undefined, { shape: this.shapes['l-left'] });
+    this.activeBlock.setScale(0.1, 0.1);
+    this.activeBlock.setIgnoreGravity(true);
 
     this.unblockLeftInputTimer = this.time.delayedCall(100, this.unblockLeftInput);
     this.unblockRightInputTimer = this.time.delayedCall(100, this.unblockRightInput);
@@ -54,9 +62,11 @@ class MainScene extends Phaser.Scene {
   }
 
   preload() {
-    console.log('preload method');
     this.load.image('box', '/assets/images/box.webp');
     this.load.image('brick', '/assets/images/brick.jpg');
+    this.load.image('l-left-blue', 'assets/l-left-blue.png');
+    this.load.image('l-left-yellow', 'assets/l-left-yellow.png');
+    this.load.json('shapes', 'assets/collision-shapes.json');
   }
 
   override update() {
@@ -128,18 +138,16 @@ class MainScene extends Phaser.Scene {
     if (this.activeBlock) {
       if (this.cursors.left.isDown)
       {
-        const currentCenter = new Phaser.Math.Vector2();
-        this.activeBlock.getCenter(currentCenter);
-        if (this.canMoveLeft(currentCenter)) {
-          this.moveLeftKeyboard(currentCenter);
+        if (this.canMoveLeft()) {
+          this.moveLeftKeyboard();
+        } else {
         }
       }
       else if (this.cursors.right.isDown)
       {
-        const currentCenter = new Phaser.Math.Vector2();
-        this.activeBlock.getCenter(currentCenter);
-        if (this.canMoveRight(currentCenter)) {
-          this.moveRightKeyboard(currentCenter);
+        if (this.canMoveRight()) {
+          this.moveRightKeyboard();
+        } else {
         }
       }
 
@@ -152,52 +160,55 @@ class MainScene extends Phaser.Scene {
     }
   }
 
-  private canMoveLeft(currentCenter: Phaser.Math.Vector2) {
-    return !this.blockLeftInput && currentCenter.x > this.activeBlock!.width / 2;
+  private canMoveLeft() {
+    return !this.blockLeftInput && this.activeBlock!.getBounds().left - this.stepSize > 0;
   }
 
-  private canMoveRight(currentCenter: Phaser.Math.Vector2) {
-    return !this.blockRightInput && currentCenter.x + this.activeBlock!.width / 2 < this.cameras.main.width
+  private canMoveRight() {
+    return !this.blockRightInput && this.activeBlock!.getBounds().right + this.stepSize < this.cameras.main.width
   }
 
-  private moveLeftKeyboard(currentCenter: Phaser.Math.Vector2) {
-    this.blockLeftInput = true;
-    this.unblockLeftInputTimer.reset({
-      delay: this.unblockDelay,
-      callback: () => this.unblockLeftInput(),
-    });
-    this.time.addEvent(this.unblockLeftInputTimer);
+  private moveLeftKeyboard() {
+    if (this.activeBlock) {
+      this.blockLeftInput = true;
+      this.unblockLeftInputTimer.reset({
+        delay: this.unblockDelay,
+        callback: () => this.unblockLeftInput(),
+      });
+      this.time.addEvent(this.unblockLeftInputTimer);
 
-    this.activeBlock!.setPosition(currentCenter.x - this.stepSize, currentCenter.y);
+      this.activeBlock.setX(this.activeBlock.x - this.stepSize);
+    }
   }
 
-  private moveRightKeyboard(currentCenter: Phaser.Math.Vector2) {
-    this.blockRightInput = true;
-    this.unblockRightInputTimer.reset({
-      delay: this.unblockDelay,
-      callback: () => this.unblockRightInput(),
-    });
-    this.time.addEvent(this.unblockRightInputTimer);
-
-    this.activeBlock!.setPosition(currentCenter.x + this.stepSize, currentCenter.y);
+  private moveRightKeyboard() {
+    if (this.activeBlock) {
+      this.blockRightInput = true;
+      this.unblockRightInputTimer.reset({
+        delay: this.unblockDelay,
+        callback: () => this.unblockRightInput(),
+      });
+      this.time.addEvent(this.unblockRightInputTimer);
+      this.activeBlock.setX(this.activeBlock.x + this.stepSize);
+    }
   }
 
   private moveRightTouch(nrOfMoves = 1) {
-    for (let index = 0; index < nrOfMoves; index++) {
-      const currentCenter = new Phaser.Math.Vector2();
-      this.activeBlock!.getCenter(currentCenter);
-      if (this.canMoveRight(currentCenter)) {
-        this.activeBlock!.setPosition(currentCenter.x + this.stepSize, currentCenter.y);
+    if (this.activeBlock) {
+      for (let index = 0; index < nrOfMoves; index++) {
+        if (this.canMoveRight()) {
+          this.activeBlock!.setX(this.activeBlock.x + this.stepSize);
+        }
       }
     }
   }
 
   private moveLeftTouch(nrOfMoves = 1) {
-    for (let index = 0; index < nrOfMoves; index++) {
-      const currentCenter = new Phaser.Math.Vector2();
-      this.activeBlock!.getCenter(currentCenter);
-      if (this.canMoveLeft(currentCenter)) {
-        this.activeBlock!.setPosition(currentCenter.x - this.stepSize, currentCenter.y);
+    if (this.activeBlock) {
+      for (let index = 0; index < nrOfMoves; index++) {
+        if (this.canMoveLeft()) {
+          this.activeBlock!.setX(this.activeBlock.x - this.stepSize);
+        }
       }
     }
   }
@@ -239,6 +250,7 @@ export class GameComponent implements OnInit, OnDestroy {
       physics: {
         default: 'matter',
         matter: {
+            debug: true
         },
       },
     };

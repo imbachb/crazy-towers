@@ -10,5 +10,5 @@ public class ScoreDbContext : DbContext
   {
   }
 
-  public virtual DbSet<PlayerScore?> PlayerScores { get; set; }
+  public virtual DbSet<PlayerScore> PlayerScores { get; set; } = null!;
 }

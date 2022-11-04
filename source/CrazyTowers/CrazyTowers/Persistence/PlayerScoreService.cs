@@ -31,12 +31,12 @@ public class PlayerScoreService : IPlayerScoreService
     }
   }
 
-  public async Task<IEnumerable<PlayerScore?>> FindAll()
+  public async Task<IEnumerable<PlayerScore>> FindAll()
   {
     return await _dbContext.PlayerScores.ToListAsync();
   }
 
-  public async Task<IEnumerable<PlayerScore?>> FindTop3()
+  public async Task<IEnumerable<PlayerScore>> FindTop3()
   {
     return await _dbContext.PlayerScores.OrderByDescending(x => x.Score).Take(3).ToListAsync();
   }

@@ -1,6 +1,6 @@
 using CrazyTowers.Persistence;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.EntityFrameworkCore;
-using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
 
 namespace CrazyTowers
 {
@@ -25,6 +25,8 @@ namespace CrazyTowers
       services.AddScoped<IPlayerScoreService, PlayerScoreService>();
 
       services.AddControllers();
+
+      services.AddSpaStaticFiles(config => this.Configuration.GetSection("Spa").Bind(config));
     }
 
     // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -34,12 +36,18 @@ namespace CrazyTowers
       {
         app.UseDeveloperExceptionPage();
       }
+      else
+      {
+        app.UseSpaStaticFiles(new StaticFileOptions { HttpsCompression = HttpsCompressionMode.Compress });
+      }
 
       app.UseHttpsRedirection();
 
       app.UseRouting();
 
       app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
+
+      app.UseSpa(spa => { });
     }
   }
 }

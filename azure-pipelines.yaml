@@ -1,0 +1,87 @@
+name: '$(Date:yyyyMMdd)-$(Rev:rr)'
+
+variables:
+  BuildConfigurationDotNet: release
+  BuildConfigurationNpm: --prod
+  BackendSourcePath: source/CrazyTowers
+  FrontendSourcePath: source/crazy-towers
+  azureServiceConnection: hackathon-2022
+
+stages:
+  - stage: Build
+    displayName: Build stage
+    jobs:
+      - job: CrazyTowersBuild
+        displayName: Crazy Towers Build
+        steps:
+          - task: UseDotNet@2
+            displayName: Use .NET 6.0
+            inputs:
+              packageType: sdk
+              version: 6.x
+
+          - task: DotNetCoreCLI@2
+            displayName: Restore NuGet packages
+            inputs:
+              command: restore
+              projects: source/**/*.sln
+              feedsToUse: select
+              vstsFeed: $(packageFeed)
+
+          - task: DotNetCoreCLI@2
+            displayName: Build Solution CrazyTowers
+            inputs:
+              command: build
+              workingDirectory: $(BackendSourcePath)
+              arguments: -c $(BuildConfigurationDotNet)
+
+          - task: DotNetCoreCLI@2
+            displayName: Publish CrazyTowers Backend
+            inputs:
+              command: publish
+              workingDirectory: $(BackendSourcePath)/CrazyTowers
+              publishWebProjects: false
+              zipAfterPublish: false
+              arguments: -c $(BuildConfigurationDotNet) -o $(Build.ArtifactStagingDirectory)/dist/crazy-towers/crazy-towers-server
+
+          - task: Npm@1
+            displayName: npm ci on crazy-towers
+            inputs:
+              command: custom
+              customCommand: ci
+              workingDir: $(FrontendSourcePath)
+
+          - task: Npm@1
+            displayName: Build crazy-towers
+            inputs:
+              command: custom
+              customCommand: >
+                run build --
+                $(BuildConfigurationNpm)
+                --progress false
+                --output-path=$(Build.ArtifactStagingDirectory)/dist/crazy-towers/crazy-towers-client
+              workingDir: $(FrontendSourcePath)
+
+          - publish: $(Build.ArtifactStagingDirectory)/dist/crazy-towers
+            displayName: Publish artifacts
+            artifact: crazy-towers
+
+  - stage: Deploy
+    displayName: Deploy stage
+    dependsOn: Build
+    jobs:
+      - job: Deployment
+        displayName: Deployment
+        steps:
+          - download: current
+            displayName: Download Build Artifact for Web Application
+            artifact: crazy-towers
+
+          - task: AzureWebApp@1
+            displayName: Deploy Crazy Towers
+            inputs:
+              azureSubscription: $(azureServiceConnection)
+              appType: webAppLinux
+              appName: crazy-towers
+              package: $(Pipeline.Workspace)/crazy-towers
+              startUpCommand: cd crazy-towers-server; dotnet CrazyTowers.dll
